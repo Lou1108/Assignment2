@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 
 
-def add_motion_blur(image_rgb, a, b):
+def add_motion_blur(image_bgr, a, b):
     # extract all components for each image
-    (r_img, g_img, b_img) = cv2.split(image_rgb)
+    (b_img, g_img, r_img) = cv2.split(image_bgr)
 
     # calculate diagonal blur for each colour channel
     r_img_degraded = degrade_single_channel(r_img, a, b).astype(np.uint8)
@@ -48,25 +48,22 @@ def get_degrading_fun(img, a, b):
     return h_blur
 
 
-def add_gaussian_noise(img, mean, std):
+def add_gaussian_noise(img, mu, sigma):
     # split image in its three colour components
     (b_img, g_img, r_img) = cv2.split(img)
 
-    ################
-    # gauss_noise = random_noise(np.abs(img).astype(np.uint8), 'gaussian', mean, std)
-
     # calculate diagonal blur for each colour channel
-    r_gauss = add_gaussian_single_channel(r_img, mean, std).astype(np.uint8)
-    g_gauss = add_gaussian_single_channel(g_img, mean, std).astype(np.uint8)
-    b_gauss = add_gaussian_single_channel(b_img, mean, std).astype(np.uint8)
+    r_gauss = add_gaussian_single_channel(r_img, mu, sigma).astype(np.uint8)
+    g_gauss = add_gaussian_single_channel(g_img, mu, sigma).astype(np.uint8)
+    b_gauss = add_gaussian_single_channel(b_img, mu, sigma).astype(np.uint8)
 
     # merge the degraded colour channel to retrieve the resulting blurred image
     return cv2.merge((b_gauss, g_gauss, r_gauss))
 
 
-def add_gaussian_single_channel(channel, mean, std):
+def add_gaussian_single_channel(channel, mu, sigma):
     f_img = np.fft.fft2(channel)  # transfer channel into ff domain
-    noise = np.random.normal(mean, std, channel.shape).astype(np.uint8)  # Gaussian Noise
+    noise = np.random.normal(mu, sigma, channel.shape).astype(np.uint8)  # Gaussian Noise
 
     f_noise = np.fft.fft2(noise)  # transfer noise into ff domain
     noisy_img = np.add(f_img, f_noise)  # adding noise to the colour component
@@ -77,35 +74,21 @@ def add_gaussian_single_channel(channel, mean, std):
     return cv2.normalize(np.abs(noisy_img), None, 0, 255, cv2.NORM_MINMAX)
 
 
-def filter_all_channels_mmse(img, blur_img, a, b):
-    # split both images in their three colour components
-    (r_img, g_img, b_img) = cv2.split(img)
-    (b_blur, g_blur, r_blur) = cv2.split(blur_img)
-
-    # filter each component separately
-    r_img_filtered = mmse_filter(r_img, r_blur, a, b)
-    g_img_filtered = mmse_filter(g_img, g_blur, a, b)
-    b_img_filtered = mmse_filter(b_img, b_blur, a, b)
-
-    # merge the filtered components to retrieve the filtered image
-    return cv2.merge((b_img_filtered, g_img_filtered, r_img_filtered))
-
-
-def direct_inv_filter(img, a, b):
+def direct_inv_filter(blurry_img, a, b):
     # split image in its three colour components
-    (r_img, g_img, b_img) = cv2.split(img)
+    (b_img, g_img, r_img) = cv2.split(blurry_img)
 
     # F_hat = G/H
     # apply direct filtering to each component individually
-    r_img_filtered = d_filter_single_channel(r_img, a, b).astype(np.uint8)
-    g_img_filtered = d_filter_single_channel(g_img, a, b).astype(np.uint8)
-    b_img_filtered = d_filter_single_channel(b_img, a, b).astype(np.uint8)
+    r_img_filtered = dif_single_channel(r_img, a, b).astype(np.uint8)
+    g_img_filtered = dif_single_channel(g_img, a, b).astype(np.uint8)
+    b_img_filtered = dif_single_channel(b_img, a, b).astype(np.uint8)
 
     # merge image before returning
     return cv2.merge((b_img_filtered, g_img_filtered, r_img_filtered))
 
 
-def d_filter_single_channel(channel, a, b):
+def dif_single_channel(channel, a, b):
     channel = channel.astype(np.double)
     fourier_img = np.fft.fft2(channel)  # get channel into fourier domain
 
@@ -119,33 +102,45 @@ def d_filter_single_channel(channel, a, b):
     return cv2.normalize(np.abs(filtered_img), None, 0, 255, cv2.NORM_MINMAX)
 
 
-####### clean up
-def mmse_filter(img, blur_img, a, b):
-    # split image in its three colour components
-    (r_img, g_img, b_img) = cv2.split(img)
-    (r_blur, g_blur, b_blur) = cv2.split(blur_img)
+def mmse_filter(img, blur_img, a, b, filter_motion_noise):
+    # split image in its three colour components, image is in bgr format
+    (b_img, g_img, r_img) = cv2.split(img)
+    (b_blur, g_blur, r_blur) = cv2.split(blur_img)
 
-    # apply mmse filtering to each component individually
-    r_img_filtered = mmse_single_channel(r_img, r_blur, a, b).astype(np.uint8)
-    g_img_filtered = mmse_single_channel(g_img, g_blur, a, b).astype(np.uint8)
-    b_img_filtered = mmse_single_channel(b_img, b_blur, a, b).astype(np.uint8)
+    # apply MMSE filtering to each component individually
+    r_img_filtered = mmse_single_channel(r_img, r_blur, a, b, filter_motion_noise).astype(np.uint8)
+    g_img_filtered = mmse_single_channel(g_img, g_blur, a, b, filter_motion_noise).astype(np.uint8)
+    b_img_filtered = mmse_single_channel(b_img, b_blur, a, b, filter_motion_noise).astype(np.uint8)
 
     # merge image before returning
     return cv2.merge((b_img_filtered, g_img_filtered, r_img_filtered))
 
 
 ### clean up
-def mmse_single_channel(channel, blur_channel, a, b):
+def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
     channel = channel.astype(np.double)
+
     noise = blur_channel - channel  # approximation of the noise
 
     ps_noise = abs(np.fft.fft2(noise)) ** 2  # power spectrum noise
     ps_img = abs(np.fft.fft2(channel)) ** 2  # power spectrum original image
 
+    print(ps_img.shape)
+
+    # make sure that we do not divide by 0
+    for i in range(ps_img.shape[0]):
+        for j in range(ps_img.shape[1]):
+            if ps_img[i][j] == 0:
+                ps_img[i][j] = 0.001
+
     h = get_degrading_fun(channel, a, b)
-    # h = np.random.normal(0.2, 1, channel.shape).astype('uint8')  # Gaussian Noise
+
+    # approximate ratio between power spectrum of noise and original image by a constant
+    k = (ps_noise / ps_img)
+
+    print(k)
     # Wiener filter
-    h_w = np.conj(h) / (np.abs(h) ** 2 + ps_noise / ps_img)
+    h_w = np.conj(h) / (np.abs(h) ** 2 + k)
 
     # apply Wiener Filter to image
     g = np.fft.fft2(blur_channel)
@@ -159,18 +154,19 @@ def mmse_single_channel(channel, blur_channel, a, b):
 # variables
 alpha = -0.05
 beta = 0.12
+mean = 0.2
+std = 1
 
 bgr_img = cv2.imread("iivp/pictures/exercise1/bird.jpg")  # read image
-rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)  # convert to rgb colour space
 
 ##################### exercise 1.1 ########################
 # adding diagonal motion blurring degradation function
-blurred_img = add_motion_blur(rgb_img, alpha, beta)  # both a, b != 0
+blurred_img = add_motion_blur(bgr_img, alpha, beta)  # both a, b != 0
 cv2.imwrite('iivp/resultPictures/exercise1/M_BlurryImage.jpg', blurred_img)
 
 ##################### exercise 1.2 ########################
 
-blur_gauss_img = add_gaussian_noise(blurred_img, 0.2, 1)
+blur_gauss_img = add_gaussian_noise(blurred_img, mean, std)
 cv2.imwrite('iivp/resultPictures/exercise1/MG_BlurryImage.jpg', blur_gauss_img)
 
 ##################### exercise 2.1 ########################
@@ -182,10 +178,11 @@ filtered_blurry_img = direct_inv_filter(blur_gauss_img, alpha, beta)
 cv2.imwrite('iivp/resultPictures/exercise1/DF_MG_blur.jpg', filtered_blurry_img)
 
 ##################### exercise 2.3 ########################
-only_gauss_img = add_gaussian_noise(rgb_img, 0.2, 1)
-mmse_gauss_img = mmse_filter(rgb_img, only_gauss_img, alpha, beta)
+only_gauss_img = add_gaussian_noise(bgr_img, mean, std)
+cv2.imwrite('iivp/resultPictures/exercise1/G_BlurryImage.jpg', only_gauss_img)
+mmse_gauss_img = mmse_filter(bgr_img, only_gauss_img, alpha, beta, False)
 cv2.imwrite('iivp/resultPictures/exercise1/MMSE_Gauss.jpg', mmse_gauss_img)
 
 ##################### exercise 2.4 ########################
-mmse_mg_img = mmse_filter(rgb_img, blur_gauss_img, alpha, beta)
+mmse_mg_img = mmse_filter(bgr_img, blur_gauss_img, alpha, beta, True)
 cv2.imwrite('iivp/resultPictures/exercise1/MMSE_MG.jpg', mmse_mg_img)
