@@ -4,6 +4,12 @@
 import cv2
 import numpy as np
 
+# variables
+alpha = -0.05
+beta = 0.12
+mean = 0.2
+std = 1
+
 
 def add_motion_blur(image_bgr, a, b):
     # extract all components for each image
@@ -120,12 +126,10 @@ def mmse_filter(img, blur_img, a, b, filter_motion_noise):
 def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
     channel = channel.astype(np.double)
 
-    noise = blur_channel - channel  # approximation of the noise
+    noise = channel - blur_channel  # approximation of the noise
 
     ps_noise = abs(np.fft.fft2(noise)) ** 2  # power spectrum noise
     ps_img = abs(np.fft.fft2(channel)) ** 2  # power spectrum original image
-
-    print(ps_img.shape)
 
     # make sure that we do not divide by 0
     for i in range(ps_img.shape[0]):
@@ -133,29 +137,25 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
             if ps_img[i][j] == 0:
                 ps_img[i][j] = 0.001
 
-    h = get_degrading_fun(channel, a, b)
+    if filter_motion_noise:
+        h = get_degrading_fun(channel, a, b)
+    else:
+        h = 1
 
     # approximate ratio between power spectrum of noise and original image by a constant
-    k = (ps_noise / ps_img)
+    k = ps_noise / ps_img
 
-    print(k)
     # Wiener filter
     h_w = np.conj(h) / (np.abs(h) ** 2 + k)
 
     # apply Wiener Filter to image
     g = np.fft.fft2(blur_channel)
-    filtered_img = h_w * g
+    filtered_img = np.multiply(h_w, g)
     # transform to frequency domain
     filtered_img = np.abs(np.fft.ifft2(filtered_img))
 
     return cv2.normalize(filtered_img, None, 0, 255, cv2.NORM_MINMAX)
 
-
-# variables
-alpha = -0.05
-beta = 0.12
-mean = 0.2
-std = 1
 
 bgr_img = cv2.imread("iivp/pictures/exercise1/bird.jpg")  # read image
 
