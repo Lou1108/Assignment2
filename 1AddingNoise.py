@@ -144,6 +144,10 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
 
     # approximate ratio between power spectrum of noise and original image by a constant
     k = ps_noise / ps_img
+    print(k)
+    # approximate k by the mean of the ratio
+    k = k.mean()
+    print(k)
 
     # Wiener filter
     h_w = np.conj(h) / (np.abs(h) ** 2 + k)
