@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 
 # variables
-alpha = -0.05
-beta = 0.12
+alpha = -0.05 #10
+beta = 0.12 #20
 mean = 0.2
 std = 1
 
@@ -25,16 +25,17 @@ def add_motion_blur(image_bgr, a, b):
 
     return motion_blur_img
 
-
+################### is shifted
 def degrade_single_channel(channel, a, b):
     channel = channel.astype(np.double)
-    fourier_img = np.fft.fft2(channel)  # get channel into fourier domain
+    fourier_img = np.fft.fftshift(np.fft.fft2(channel))  # get channel into fourier domain
+    # fourier_img = np.fft.fft2(channel)  # get channel into fourier domain
 
     h_blur = get_degrading_fun(channel, a, b)  # retrieve degrading function
 
     # apply degrading function to the channel to generate the motion blurry channel
     motion_blur = np.multiply(fourier_img, h_blur)
-    motion_blur_img = np.fft.ifft2(motion_blur)  # transform channel back into time domain
+    motion_blur_img = np.fft.ifft2(np.fft.ifftshift(motion_blur))  # transform channel back into time domain
 
     # normalize blurry channel before returning it
     return cv2.normalize(np.abs(motion_blur_img), None, 0, 255, cv2.NORM_MINMAX)
