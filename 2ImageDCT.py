@@ -42,7 +42,7 @@ def create_watermark_non_dc(k):
 
 
 # read in picture in gray scale
-img_grey = cv2.imread("iivp/pictures/elephants.jpg", 0)
+img_grey = cv2.imread("iivp/pictures/cameraman.tif",0) #elephants.jpg", 0)
 # resize image to make it smaller (about half its size) and also the size to be divisible by the blocksize
 new_width = math.floor(int(img_grey.shape[1] / 2)/block_size)*block_size
 new_height = math.floor(int(img_grey.shape[0] / 2)/block_size)*block_size

@@ -5,8 +5,8 @@ import numpy as np
 import scipy.fftpack
 
 block_size = 8
-alpha = 0.001
-var = 1
+alpha = 0.1
+var = 0.1 #1
 k = 10
 
 

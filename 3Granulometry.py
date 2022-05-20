@@ -7,15 +7,11 @@ from matplotlib import pyplot as plt
 
 
 def granulometry(img, max_size):
-    surfAreas = []
+    surfAreas = np.zeros(max_size)
     for i in range(max_size):
         sucOpen = perform_opening(img, i)
-        surfAreas.append(get_surface_area(sucOpen))
+        surfAreas[i] = np.sum(sucOpen)  # calculate surface area of the opened image
     return surfAreas
-
-
-def get_surface_area(opening):
-    return sum(sum(opening))
 
 
 # erosion followed by dilation
@@ -50,14 +46,6 @@ def plot_granulometry(surfAreas, name):
 
 # read in picture in greyscale
 grey_img = cv2.imread("iivp/pictures/jar.jpg", 0)
-grey_img = cv2.resize(grey_img, (math.floor(grey_img.shape[1]/4), math.floor(grey_img.shape[0]/4)))
+# perform granulometry
+plot_granulometry(granulometry(grey_img, 100), 'oranges')
 
-
-gran_orange = granulometry(grey_img, 100)
-plot_granulometry(gran_orange, 'oranges')
-
-#check_gran(grey_img)
-
-#print(perform_opening(orange_grey, 160))
-
-#print(get_surface_area(perform_opening(orange_grey, 160)))

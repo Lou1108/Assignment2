@@ -49,6 +49,10 @@ def get_total_circle_surface(img):
     return np.count_nonzero(img == 255)
 
 
+def elipse_area(a, b):
+    return math.pi * (a / 2) * (b / 2)
+
+
 # read in picture in greyscale
 orange_grey = cv2.imread("iivp/pictures/oranges.jpg", 0)
 orange_grey = cv2.resize(orange_grey, (math.floor(orange_grey.shape[1]), math.floor(orange_grey.shape[0])))
@@ -72,7 +76,7 @@ display_img_with_grid(tree_rgb, "tree_grid")
 
 # the determined kernel sizes
 kernel_size_orange = 85  # 150
-kernel_size_tree = 82  #160
+kernel_size_tree = 82  # 160
 
 
 # perform opening
