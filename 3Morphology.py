@@ -108,5 +108,5 @@ print('The orange tree picture contains ', count_tree, ' oranges.')
 ############################## exercise 3.2 ##########################
 # read in picture in greyscale
 grey_img = cv2.imread("iivp/pictures/jar.jpg", 0)
-# perform granulometry and plot the result
+# perform granulometry and plot the results
 plot_granulometry(granulometry(grey_img, 100), 'jar_granulometry')
