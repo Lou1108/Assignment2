@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 
 # variables
-alpha = -0.05 #10
-beta = 0.12 #20
-mean = 0.2
-std = 1
+alpha = -0.05
+beta = 0.08
+mean = 0.005 #0.1  #0.05
+std = 1#0.02**0.5 #1
 
 
 def add_motion_blur(image_bgr, a, b):
@@ -25,20 +25,19 @@ def add_motion_blur(image_bgr, a, b):
 
     return motion_blur_img
 
-################### is shifted
+
 def degrade_single_channel(channel, a, b):
     channel = channel.astype(np.double)
-    fourier_img = np.fft.fftshift(np.fft.fft2(channel))  # get channel into fourier domain
-    # fourier_img = np.fft.fft2(channel)  # get channel into fourier domain
+    F = np.fft.fft2(channel)  # get channel into fourier domain
 
-    h_blur = get_degrading_fun(channel, a, b)  # retrieve degrading function
+    H = get_degrading_fun(channel, a, b)  # retrieve degrading function
 
     # apply degrading function to the channel to generate the motion blurry channel
-    motion_blur = np.multiply(fourier_img, h_blur)
-    motion_blur_img = np.fft.ifft2(np.fft.ifftshift(motion_blur))  # transform channel back into time domain
+    G = np.multiply(F, H)
+    g = np.fft.ifft2(G)  # transform channel back into time domain
 
     # normalize blurry channel before returning it
-    return cv2.normalize(np.abs(motion_blur_img), None, 0, 255, cv2.NORM_MINMAX)
+    return cv2.normalize(np.abs(g), None, 0, 255, cv2.NORM_MINMAX)
 
 
 def get_degrading_fun(img, a, b):
@@ -71,14 +70,14 @@ def add_gaussian_noise(img, mu, sigma):
 def add_gaussian_single_channel(channel, mu, sigma):
     f_img = np.fft.fft2(channel)  # transfer channel into ff domain
     noise = np.random.normal(mu, sigma, channel.shape).astype(np.uint8)  # Gaussian Noise
-
+    noise = noise.reshape(channel.shape)
     f_noise = np.fft.fft2(noise)  # transfer noise into ff domain
     noisy_img = np.add(f_img, f_noise)  # adding noise to the colour component
 
     noisy_img = np.fft.ifft2(noisy_img)  # transfer channel back into time domain
 
     # normalize the picture before returning it
-    return cv2.normalize(np.abs(noisy_img), None, 0, 255, cv2.NORM_MINMAX)
+    return cv2.normalize(np.abs(noisy_img), None, 0, 255, cv2.NORM_MINMAX) # np.abs(noisy_img)
 
 
 def direct_inv_filter(blurry_img, a, b):
@@ -145,10 +144,11 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
 
     # approximate ratio between power spectrum of noise and original image by a constant
     k = sum(ps_noise) / sum(ps_img)
-    #print(k)
+    #k = ps_noise / ps_img
+    # print(k)
     # approximate k by the mean of the ratio
-    #k = k.mean()
-    #print(k)
+    # k = k.mean()
+    # print(k)
 
     # Wiener filter
     h_w = np.conj(h) / (np.abs(h) ** 2 + k)
@@ -162,15 +162,16 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
     return cv2.normalize(filtered_img, None, 0, 255, cv2.NORM_MINMAX)
 
 
-bgr_img = cv2.imread("iivp/pictures/exercise1/bird.jpg")  # read image
+bgr_img = cv2.imread("iivp/pictures/bird.jpg")  # read image
+
 
 ##################### exercise 1.1 ########################
 # adding diagonal motion blurring degradation function
 blurred_img = add_motion_blur(bgr_img, alpha, beta)  # both a, b != 0
 cv2.imwrite('iivp/resultPictures/exercise1/M_BlurryImage.jpg', blurred_img)
 
-##################### exercise 1.2 ########################
 
+##################### exercise 1.2 ########################
 blur_gauss_img = add_gaussian_noise(blurred_img, mean, std)
 cv2.imwrite('iivp/resultPictures/exercise1/MG_BlurryImage.jpg', blur_gauss_img)
 
@@ -182,7 +183,8 @@ cv2.imwrite('iivp/resultPictures/exercise1/DF_M_blur.jpg', filtered_motion_img)
 filtered_blurry_img = direct_inv_filter(blur_gauss_img, alpha, beta)
 cv2.imwrite('iivp/resultPictures/exercise1/DF_MG_blur.jpg', filtered_blurry_img)
 
-##################### exercise 2.3 ########################
+
+####################### exercise 2.3 ########################
 only_gauss_img = add_gaussian_noise(bgr_img, mean, std)
 cv2.imwrite('iivp/resultPictures/exercise1/G_BlurryImage.jpg', only_gauss_img)
 mmse_gauss_img = mmse_filter(bgr_img, only_gauss_img, alpha, beta, False)

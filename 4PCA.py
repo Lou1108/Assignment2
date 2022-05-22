@@ -4,7 +4,6 @@
 
 # https://learnopencv.com/eigenface-using-opencv-c-python/
 # https://machinelearningmastery.com/face-recognition-using-principal-component-analysis/
-import math
 import os
 import cv2
 import numpy as np
@@ -31,7 +30,8 @@ def do_pca(images):
         eigenFace = eigenVector.reshape(size)
         print("range: ", print(eigenFace))
         eigenFaces.append(eigenFace)
-        cv2.imwrite("iivp/resultPictures/exercise4/" + str(count) + ".jpg", eigenFace)
+        disp_img = cv2.normalize(np.abs(eigenFace), None, 0, 255, cv2.NORM_MINMAX)
+        cv2.imwrite("iivp/resultPictures/exercise4/" + str(count) + ".jpg", disp_img)
         count += 1
 
     display_eigen_faces(eigenFaces, size)
@@ -86,9 +86,15 @@ def createNewFace(avg_face, eigen_faces, weights):
 
 def display_eigen_faces(eigen_faces, size):
     # displaying all eigenfaces
+    for i in range(len(eigen_faces)):
+        min_value = eigen_faces[i].min(axis=(0, 1))
+        max_value = eigen_faces[i].max(axis=(0, 1))
+        eigen_faces[i] = 255 * (eigen_faces[i] - min_value) / (max_value - min_value)
+
     fig, axes = plt.subplots(4, 5, sharex=True, sharey=True, figsize=(8, 10))
     for i in range(len(eigen_faces)):
-        axes[i % 4][i // 4].imshow(eigen_faces[i].reshape(size))  # , cmap="gray")
+        print(eigen_faces[i])
+        axes[i % 4][i // 4].imshow(eigen_faces[i].reshape(size), cmap="gray")
     plt.show()
 
 
