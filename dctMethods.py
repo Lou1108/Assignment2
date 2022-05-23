@@ -100,30 +100,28 @@ def create_watermark(block, k, omega, alpha):
 
 # creates pseudo random watermarking sequence
 def create_watermark_omega(k, var):
-    return np.random.normal(0, var, k).astype(np.uint8)  # Gaussian Noise
+    return np.random.normal(0, var, k)  # Gaussian Noise
 
 
 # determines if a mystery image has a watermark, assuming we know the original and the original omega
-def has_watermark(img, omega, orig_img, block_size, k, alpha, threshold):
-    # for both images only th ek largest dct coefficients are kept
-    dct_img = blockwise_dct(img, block_size)
-    k_mask = k_largest_values_blockwise(dct_img, block_size, k)
+def has_watermark(mystery_img, omega, orig_img, block_size, k, alpha, threshold):
+    # for both images only the largest dct coefficients are kept
+    dct_img = blockwise_dct(mystery_img, block_size)
     orig_img_dct = blockwise_dct(orig_img, block_size)
-    k_mask_original = k_largest_values_blockwise(orig_img_dct, block_size, k)
     # estimate the watermark
-    omega_estimate = estimate_watermark(k_mask, k_mask_original, block_size, k, alpha)
-    print(omega_estimate)
+    omega_estimate = estimate_watermark(dct_img, orig_img_dct, block_size, k, alpha)
+    print("estimated omega: ", omega_estimate)
     omega_mean = omega.mean()
-    print(omega_mean)
+    print("omega_mean: ", omega_mean)
     mean_omega_estimate = omega_estimate.mean()
-    print(mean_omega_estimate)
+    print("omega_mean_est: ",mean_omega_estimate)
 
     # the image does not contain a watermark since both the mystery and the original image are exactly the same
     if mean_omega_estimate == 0:
         return False
 
-    gamma = get_gamma(omega_estimate, mean_omega_estimate, omega, omega_mean, k)
-    print(gamma)
+    gamma = get_gamma(omega_estimate, mean_omega_estimate, omega, omega_mean)
+    print("gamma: ", gamma)
 
     # decide if image has a watermark based on its gamma value and the given threshold
     if gamma < threshold:
@@ -132,7 +130,6 @@ def has_watermark(img, omega, orig_img, block_size, k, alpha, threshold):
         return True
 
 
-############################################# check if needs to be divided ###########################################
 # returns the sum of the estimates watermark values
 def estimate_watermark(k_mask, orig_image, block_size, k, alpha):
     sum_omega = np.array([0] * k)
@@ -150,7 +147,7 @@ def estimate_watermark(k_mask, orig_image, block_size, k, alpha):
     return sum_omega/count  # return the average for each of the omega values
 
 
-###################################################### cehck ###################################################
+###################################################### check ###################################################
 def estimate_omega_one_block(block, img_block, k, alpha):
     omega_est = []
     #myst_ph = block[0][0]  # keep for later (DC coefficient)
@@ -169,7 +166,7 @@ def estimate_omega_one_block(block, img_block, k, alpha):
     k_original = (abs(one_dim).argsort())[::-1]
 
     for i in range(k):  # estimates wi for each of the k coefficients
-        ci = one_dim[k_original[i]]  # coefficient of the image
+        ci = one_dim[k_mystery[i]]  # coefficient of the image
         ci_hat = one_dim_myst[k_mystery[i]]  # coefficient of the mystery image
         wi = (ci_hat - ci) / (alpha * ci)  # wi_hat = (ci_hat - ci) / alpha * ci
         omega_est.append(wi)
@@ -178,14 +175,11 @@ def estimate_omega_one_block(block, img_block, k, alpha):
 
 
 # computes the gamma value assuming that we know the original omega value
-def get_gamma(omega_est, o_mean_est, orig_omega, orig_o_mean, k):
-    num = 0
-    den_est = 0
-    den_omega = 0
-    for i in range(k):
-        num += ((omega_est[i] - o_mean_est) * (orig_omega[i] - orig_o_mean))
-        den_est = (omega_est[i] - o_mean_est)**2
-        den_omega = (orig_omega[i] - orig_o_mean) ** 2
+def get_gamma(omega_est, o_mean_est, orig_omega, orig_o_mean):
+    num = np.sum((omega_est - o_mean_est) * (orig_omega - orig_o_mean))
+    den_est = np.sum(np.power(omega_est - o_mean_est, 2))
+    den_omega = np.sum(np.power(orig_omega - orig_o_mean, 2))
+    denominator = np.sqrt(den_est * den_omega)
 
-    return num / (math.sqrt(den_est * den_omega))
+    return num / denominator
 
