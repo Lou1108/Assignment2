@@ -62,8 +62,8 @@ plt.figure()
 ###################################################### exercise 2.2 ###################################################
 # orig_img is the original image (1), wm_img is the watermarked image (2) taken from the previous exercise
 
-orig_watermarked = dct.has_watermark(orig_img, omega, orig_img, block_size, k, alpha, threshold)
-print("The first image contains a watermark: ", orig_watermarked)
+#orig_watermarked = dct.has_watermark(orig_img, omega, orig_img, block_size, k, alpha, threshold)
+#print("The first image contains a watermark: ", orig_watermarked)
 wm_watermarked = dct.has_watermark(wm_img, omega, orig_img, block_size, k, alpha, threshold)
 print("The second image contains a watermark: ", wm_watermarked)
 

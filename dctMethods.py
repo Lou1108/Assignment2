@@ -1,7 +1,6 @@
 # author:   Lena Luisa Feiler
 # ID:       i6246119
 import math
-
 import numpy as np
 import scipy.fftpack
 
@@ -104,16 +103,20 @@ def create_watermark_omega(k, var):
     return np.random.normal(0, var, k).astype(np.uint8)  # Gaussian Noise
 
 
+# determines if a mystery image has a watermark, assuming we know the original and the original omega
 def has_watermark(img, omega, orig_img, block_size, k, alpha, threshold):
     # for both images only th ek largest dct coefficients are kept
-    dct_img = blockwise_dct(img)
-    k_mask = k_largest_values_blockwise(dct_img)
-    orig_img_dct = blockwise_dct(orig_img)
-    k_mask_original = k_largest_values_blockwise(orig_img_dct)
+    dct_img = blockwise_dct(img, block_size)
+    k_mask = k_largest_values_blockwise(dct_img, block_size, k)
+    orig_img_dct = blockwise_dct(orig_img, block_size)
+    k_mask_original = k_largest_values_blockwise(orig_img_dct, block_size, k)
     # estimate the watermark
     omega_estimate = estimate_watermark(k_mask, k_mask_original, block_size, k, alpha)
+    print(omega_estimate)
     omega_mean = omega.mean()
+    print(omega_mean)
     mean_omega_estimate = omega_estimate.mean()
+    print(mean_omega_estimate)
 
     # the image does not contain a watermark since both the mystery and the original image are exactly the same
     if mean_omega_estimate == 0:
@@ -134,6 +137,7 @@ def has_watermark(img, omega, orig_img, block_size, k, alpha, threshold):
 def estimate_watermark(k_mask, orig_image, block_size, k, alpha):
     sum_omega = np.array([0] * k)
     img_size = k_mask.shape
+    count = 0
     # iterate through each block
     for i in np.r_[:img_size[0]: block_size]:
         for j in np.r_[:img_size[1]: block_size]:
@@ -141,8 +145,9 @@ def estimate_watermark(k_mask, orig_image, block_size, k, alpha):
             orig_block = orig_image[i:i + block_size, j:j + block_size]  # block of original image
             # adding the estimated omega values
             sum_omega = np.add(sum_omega, estimate_omega_one_block(block, orig_block, k, alpha))
+            count = count + 1
 
-    return sum_omega
+    return sum_omega/count  # return the average for each of the omega values
 
 
 ###################################################### cehck ###################################################
@@ -150,6 +155,8 @@ def estimate_omega_one_block(block, img_block, k, alpha):
     omega_est = []
     #myst_ph = block[0][0]  # keep for later (DC coefficient)
     #myst_ph[0][0] = 0  # will not be one of the k largest magnitude values
+    block[0][0] = 0
+    img_block[0][0] = 0
 
     # sort both the mystery image block and the original block by magnitude
     one_dim_myst = np.reshape(block, (-1))
