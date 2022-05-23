@@ -70,7 +70,7 @@ def plot_granulometry(surfAreas, name):
     plt.figure()
 
 
-############################## exercise 3.1 ##########################
+###################################################### exercise 3.1 ###################################################
 # read in picture as greyscale
 orange_grey = cv2.imread("iivp/pictures/oranges.jpg", 0)
 tree_grey = cv2.imread("iivp/pictures/orangetree.jpg", 0)
@@ -81,7 +81,6 @@ tree_grey = cv2.imread("iivp/pictures/orangetree.jpg", 0)
 cv2.imwrite('iivp/resultPictures/exercise3/BW_oranges.jpg', bw_orange)
 (thresh, bw_tree) = cv2.threshold(tree_grey, math.floor(255/2), 255, cv2.THRESH_BINARY)
 cv2.imwrite('iivp/resultPictures/exercise3/BW_tree.jpg', bw_tree)
-
 
 # display the rgb with a grid to measure the size of the orange by eye
 display_img_with_grid(cv2.cvtColor(orange_grey, cv2.COLOR_GRAY2RGB), "orange_grid")
@@ -105,8 +104,12 @@ count_tree = count_oranges(op_tree, kernel_size_tree)
 print('The orange tree picture contains ', count_tree, ' oranges.')
 
 
-############################## exercise 3.2 ##########################
+###################################################### exercise 3.2 ###################################################
 # read in picture in greyscale
 grey_img = cv2.imread("iivp/pictures/jar.jpg", 0)
+grey_img = cv2.resize(grey_img, (math.floor(grey_img.shape[1]/4), math.floor(grey_img.shape[0]/4)))  # resize image
+
 # perform granulometry and plot the results
 plot_granulometry(granulometry(grey_img, 100), 'jar_granulometry')
+display_img_with_grid(cv2.cvtColor(grey_img, cv2.COLOR_GRAY2RGB), "jar_grid")
+

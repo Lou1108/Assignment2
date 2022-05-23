@@ -8,76 +8,49 @@ from matplotlib import pyplot as plt
 import dctMethods as dct
 
 block_size = 8
-
-
-def watermark_blockwise(k_mask, k, o):
-    img_size = k_mask.shape
-    # iterate through each block
-    for i in np.r_[:img_size[0]:block_size]:
-        for j in np.r_[:img_size[1]:block_size]:
-            block = k_mask[i:i + block_size, j:j + block_size]
-            k_mask[i:i + block_size, j:j + block_size] = create_watermark(block, k, o)
-    return k_mask
-
-
-##### change to blockwise ....
-def create_watermark(block, k, o):
-    placeholder = block[0][0]  # keep for later (DC coefficient)
-    block[0][0] = 0  # will not be one of the k largest magnitude values
-    one_dim_dct = np.reshape(block, (-1))
-    high_indices = (abs(one_dim_dct).argsort())[::-1]
-
-    for i in range(k):
-        # ci' = c*(1#alpha*omega_i)
-        one_dim_dct[high_indices[i]] = one_dim_dct[high_indices[i]] * (1 + dct.alpha * o[i])
-
-    one_dim_dct = one_dim_dct.reshape(block.shape)
-    one_dim_dct[0][0] = placeholder
-
-    return one_dim_dct
-
-
-def create_watermark_non_dc(k):
-    return np.random.normal(0, dct.var, k).astype(np.uint8)  # Gaussian Noise
+alpha = 0.001
+var = 1
+k = 7
+threshold = 0.1
 
 
 # read in picture in gray scale
-img_grey = cv2.imread("iivp/pictures/cameraman.tif",0) #elephants.jpg", 0)
+orig_img = cv2.imread("iivp/pictures/dolphin.jpg", 0)
 # resize image to make it smaller (about half its size) and also the size to be divisible by the blocksize
-new_width = math.floor(int(img_grey.shape[1] / 2)/block_size)*block_size
-new_height = math.floor(int(img_grey.shape[0] / 2)/block_size)*block_size
-img_grey = cv2.resize(img_grey, (new_width, new_height))  # resize image
+new_width = math.floor(int(orig_img.shape[1] / 2) / block_size) * block_size
+new_height = math.floor(int(orig_img.shape[0] / 2) / block_size) * block_size
+orig_img = cv2.resize(orig_img, (new_width, new_height))  # resize image
 
-##################### exercise 1.1 ########################
+###################################################### exercise 1.2 ###################################################
 # transforming image to dct domain
-dct_img = dct.blockwise_dct(img_grey)
+dct_img = dct.blockwise_dct(orig_img, block_size)
 cv2.imwrite('iivp/resultPictures/exercise2/DCT_image.jpg', dct_img)
 # save image with an adjusted scale to show the blocks more clearly
 plt.figure()
 plt.imsave('iivp/resultPictures/exercise2/DCT_image_threshold.jpg', dct_img, vmax=np.max(dct_img) * 0.01, vmin=0)
 
-dct_inv = dct.blockwise_idct(dct_img)
-cv2.imwrite('iivp/resultPictures/exercise2/k_mask_10000_inv.jpg', dct_inv)
+dct_inv = dct.blockwise_idct(dct_img, block_size)
+cv2.imwrite('iivp/resultPictures/exercise2/dct_inv.jpg', dct_inv)
 
 # finding a good value for k
 print("image ", dct_img.shape)
-dct_larger_k = dct.k_largest_values_blockwise(dct_img)
-cv2.imwrite('iivp/resultPictures/exercise2/k_mask_10000.jpg', dct_larger_k)
+dct_larger_k = dct.k_largest_values_blockwise(dct_img, block_size, k)
+cv2.imwrite('iivp/resultPictures/exercise2/k_mask.jpg', dct_larger_k)
 
-dct_k_inv = dct.blockwise_idct(dct_larger_k)
-cv2.imwrite('iivp/resultPictures/exercise2/k_mask_10000_inv.jpg', dct_k_inv)
+dct_k_inv = dct.blockwise_idct(dct_larger_k, block_size)
+cv2.imwrite('iivp/resultPictures/exercise2/k_mask_inv.jpg', dct_k_inv)
 
-omega = create_watermark_non_dc(dct.k)
+omega = dct.create_watermark_omega(k, var)
 print("omega :" , omega)
 ## adding a watermark
-dct_watermarked = watermark_blockwise(dct_larger_k, dct.k, omega)
+dct_watermarked = dct.watermark_blockwise(dct_larger_k, k, omega, block_size, alpha)
 cv2.imwrite('iivp/resultPictures/exercise2/watermark.jpg', dct_watermarked)
 
-dct_watermark_inv = dct.blockwise_idct(dct_watermarked)
-cv2.imwrite('iivp/resultPictures/exercise2/watermark_inv.jpg', dct_watermark_inv)
+wm_img = dct.blockwise_idct(dct_watermarked, block_size)
+cv2.imwrite('iivp/resultPictures/exercise2/watermark_inv.jpg', wm_img)
 
 # difference image
-difference_img = cv2.subtract(dct_inv, dct_watermark_inv)
+difference_img = cv2.subtract(dct_inv, wm_img)
 cv2.imwrite('iivp/resultPictures/exercise2/DifferenceImage.jpg', difference_img)
 
 # histogram of the difference image
@@ -85,4 +58,13 @@ plt.hist(difference_img.ravel(), 256, [0, 255])  # histogram for high contrast p
 plt.title('histogram difference image')
 plt.savefig('iivp/resultPictures/exercise2/DifferenceImageHist.jpg')
 plt.figure()
+
+###################################################### exercise 2.2 ###################################################
+# orig_img is the original image (1), wm_img is the watermarked image (2) taken from the previous exercise
+
+orig_watermarked = dct.has_watermark(orig_img, omega, orig_img, block_size, k, alpha, threshold)
+print("The first image contains a watermark: ", orig_watermarked)
+wm_watermarked = dct.has_watermark(wm_img, omega, orig_img, block_size, k, alpha, threshold)
+print("The second image contains a watermark: ", wm_watermarked)
+
 
