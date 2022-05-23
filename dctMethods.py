@@ -3,17 +3,19 @@
 import math
 import numpy as np
 import scipy.fftpack
+# contains all the methods necessary for the operations of the second exercise
 
 
 def k_largest_values_blockwise(k_mask, block_size, k):
-    img_size = k_mask.shape
+    k_mask_dct = blockwise_dct(k_mask, block_size)  # transform into dct domain
+    img_size = k_mask_dct.shape
     # iterate through each block
     for i in np.r_[:img_size[0]:block_size]:
         for j in np.r_[:img_size[1]:block_size]:
-            block = k_mask[i:i + block_size, j:j + block_size]
+            block = k_mask_dct[i:i + block_size, j:j + block_size]
             # replaces the block by its watermarked version
-            k_mask[i:i + block_size, j:j + block_size] = keep_k_largest(block, k)
-    return k_mask
+            k_mask_dct[i:i + block_size, j:j + block_size] = keep_k_largest(block, k)
+    return k_mask_dct
 
 
 # only keeps the k largest dct coefficients, sets all other dct coefficients to 0
@@ -51,7 +53,7 @@ def blockwise_idct(img, block_size):
     img_size = img.shape
     idct = np.zeros(img_size)
 
-    for i in np.r_[:img_size[0]:block_size]:   # loops through whole image
+    for i in np.r_[:img_size[0]:block_size]:  # loops through whole image
         for j in np.r_[:img_size[1]:block_size]:
             # performs idct on each block
             idct[i:(i + block_size), j:(j + block_size)] = idct_2d(img[i:(i + block_size), j:(j + block_size)])
@@ -110,18 +112,15 @@ def has_watermark(mystery_img, omega, orig_img, block_size, k, alpha, threshold)
     orig_img_dct = blockwise_dct(orig_img, block_size)
     # estimate the watermark
     omega_estimate = estimate_watermark(dct_img, orig_img_dct, block_size, k, alpha)
-    print("estimated omega: ", omega_estimate)
     omega_mean = omega.mean()
-    print("omega_mean: ", omega_mean)
     mean_omega_estimate = omega_estimate.mean()
-    print("omega_mean_est: ",mean_omega_estimate)
 
     # the image does not contain a watermark since both the mystery and the original image are exactly the same
     if mean_omega_estimate == 0:
         return False
 
+    # retrieving the gamma value
     gamma = get_gamma(omega_estimate, mean_omega_estimate, omega, omega_mean)
-    print("gamma: ", gamma)
 
     # decide if image has a watermark based on its gamma value and the given threshold
     if gamma < threshold:
@@ -144,28 +143,22 @@ def estimate_watermark(k_mask, orig_image, block_size, k, alpha):
             sum_omega = np.add(sum_omega, estimate_omega_one_block(block, orig_block, k, alpha))
             count = count + 1
 
-    return sum_omega/count  # return the average for each of the omega values
+    return sum_omega / count  # return the average for each of the omega values
 
 
-###################################################### check ###################################################
+# estimating the value of the
 def estimate_omega_one_block(block, img_block, k, alpha):
     omega_est = []
-    #myst_ph = block[0][0]  # keep for later (DC coefficient)
-    #myst_ph[0][0] = 0  # will not be one of the k largest magnitude values
-    block[0][0] = 0
-    img_block[0][0] = 0
+    block[0][0] = 0  # ensuring that the DC coefficient is not selected
 
     # sort both the mystery image block and the original block by magnitude
     one_dim_myst = np.reshape(block, (-1))
     k_mystery = (abs(one_dim_myst).argsort())[::-1]
-
-    #ph = img_block[0][0]  # keep for later (DC coefficient)
-    #ph[0][0] = 0  # will not be one of the k largest magnitude values
-
     one_dim = np.reshape(img_block, (-1))
-    k_original = (abs(one_dim).argsort())[::-1]
 
     for i in range(k):  # estimates wi for each of the k coefficients
+        # since we compare the images, we access the same indices in both arrays, based on the largest
+        # magnitudes of the mystery image
         ci = one_dim[k_mystery[i]]  # coefficient of the image
         ci_hat = one_dim_myst[k_mystery[i]]  # coefficient of the mystery image
         wi = (ci_hat - ci) / (alpha * ci)  # wi_hat = (ci_hat - ci) / alpha * ci
@@ -176,10 +169,11 @@ def estimate_omega_one_block(block, img_block, k, alpha):
 
 # computes the gamma value assuming that we know the original omega value
 def get_gamma(omega_est, o_mean_est, orig_omega, orig_o_mean):
+    # applying the formula from the assignment sheet
     num = np.sum((omega_est - o_mean_est) * (orig_omega - orig_o_mean))
     den_est = np.sum(np.power(omega_est - o_mean_est, 2))
     den_omega = np.sum(np.power(orig_omega - orig_o_mean, 2))
     denominator = np.sqrt(den_est * den_omega)
+    print("gamma: ", num / denominator)
 
     return num / denominator
-
