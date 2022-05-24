@@ -8,7 +8,7 @@ import numpy as np
 alpha = -0.05
 beta = 0.08
 mean = 0.005 #0.1  #0.05
-std = 1#0.02**0.5 #1
+std = 1 #0.02**0.5 #1
 
 
 def add_motion_blur(image_bgr, a, b):

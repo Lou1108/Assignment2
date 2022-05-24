@@ -7,62 +7,62 @@
 import os
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 def do_pca(images):
-    size = images[0].shape  # image size
+    size = images[0].shape  # image size, all images have the smae size
 
+    # step 1 and 2: vectorize samples and create data matrix
     # Create data matrix for PCA
-    data = create_data_matrix(images)  # np.array(create_data_matrix(images))
+    data = create_data_matrix(images)
 
-    # Compute the eigenvectors from the stack of images created
-    print("Calculating PCA ", end="...")
-    mean, eigenVectors = cv2.PCACompute(data, mean=None)
-    print("DONE")
+    # using the data matrix, compute the mean and the eigenvectors for each image
+    # already takes care of step 4: Covariance matrix and gives back the eigenvectors (step 5)
+    # eigenvectors has shape (n_img, w*h*3)
+    mx_mean, A_eigenVectors = cv2.PCACompute(data, mean=None)
 
-    averageFace = mean.reshape(size)
+    avg_faces = mx_mean.reshape(size)
 
-    ######## ;?
-    eigenFaces = [];
-    count = 1
-    for eigenVector in eigenVectors:
-        eigenFace = eigenVector.reshape(size)
-        print("range: ", print(eigenFace))
-        eigenFaces.append(eigenFace)
+    eigen_faces = [];
+    count = 1  # counter to save all images
+    for eigenVector in A_eigenVectors:
+        eigenFace = eigenVector.reshape(size)  # reshaping to original format to retrieve eigen face
+        eigen_faces.append(eigenFace)
         disp_img = cv2.normalize(np.abs(eigenFace), None, 0, 255, cv2.NORM_MINMAX)
         cv2.imwrite("iivp/resultPictures/exercise4/" + str(count) + ".jpg", disp_img)
         count += 1
 
-    display_eigen_faces(eigenFaces, size)
+    cv2.imwrite('iivp/resultPictures/exercise4/average face.jpg', avg_faces)
 
-    cv2.imwrite('iivp/resultPictures/exercise4/average face.jpg', averageFace)
+    return mx_mean, A_eigenVectors
 
 
-### also include mirrored images!!!
-# https://stackoverflow.com/questions/30230592/loading-all-images-using-imread-from-a-given-folder
+#################################### also include mirrored images!!!  #################################################
+# reads in all images from a specified folder
 def read_images_from_folder(folder_name):
+    # reference: https://stackoverflow.com/questions/30230592/loading-all-images-using-imread-from-a-given-folder
     images = []
-    for image in os.listdir(folder_name):
+    for image in os.listdir(folder_name):  # find images in selected folder
         img = cv2.imread(os.path.join(folder_name, image))
         if img is not None:
-            if type(img) == np.ndarray:
-                img = cv2.resize(img, (717, 717))
-                images.append(img)
+            if type(img) == np.ndarray:  # only read if it is an image, prevents errors
+                img = cv2.resize(img, (717, 717))  # let all images have the same size
+                images.append(img)  # add to data array
     return images
 
 
+# create one data matrix for all the input images
 def create_data_matrix(data):
-    # create one data matrix for all the input images
-    # size is ( w  * h  * 3, numImages ): width[0], height[1] of image in data set, [3] is for the 3 colour channels
     num_img = len(data)
-    sz = data[0].shape
-    data_matrix = np.zeros((num_img, sz[0] * sz[1] * sz[2]),
-                           dtype=np.float32)  # data_matrix = np.zeros((size[0] * size[1] * size[2]), dtype=np.float32)
+    size = data[0].shape  # size of one image, they all have the same size
+
+    # data matrix will have dimension (size[0] * size[1] * size[2], num_images) = ( w  * h  * 3, numImages )
+    data_matrix = np.zeros((num_img, size[0] * size[1] * size[2]),
+                           dtype=np.float32)  # uint8
 
     for i in range(0, num_img):
-        image = data[i].flatten()
-        data_matrix[i, :] = image  # ot this:   data_matrix[:, i] = image
+        image = data[i].flatten()  # step 1: vectorize each image (will have dimension (3*w*h, 1)
+        data_matrix[i, :] = image  # step 2: add vector to the data matrix
 
     return data_matrix
 
@@ -70,34 +70,28 @@ def create_data_matrix(data):
 '''eigen_faces is a list/ array og eigenfaces that is used to construct the face
 weights is a list of weights corresponding to the list of faces, 
 that measures how much each is going to be used in the reconstruction '''
-def createNewFace(avg_face, eigen_faces, weights):
+
+
+def createNewFace(avg_face, eigen_faces, y_weight, size):
     # Start with the mean image
-    output = avg_face
+    output_img = avg_face
     num_eigen_faces = len(eigen_faces)
 
     # Add the eigen faces with the weights
-    for i in range(0, num_eigen_faces):
-        output = np.add(output, eigen_faces[i] * weights[i])
+    for i in range(num_eigen_faces):
+        print("eigen_faces: ", eigen_faces[i].shape)
+        print("weights: ", y_weight[i].shape)
+        output_img = np.add(output_img, eigen_faces[i] * y_weight[i])
 
+    print(output_img)
+    print(output_img.shape)
     # Display Result at 2x size
-    output = cv2.resize(output, (0, 0), fx=2, fy=2)
-    cv2.imwrite('iivp/resultPictures/exercise4/new face.jpg', output)
-
-
-def display_eigen_faces(eigen_faces, size):
-    # displaying all eigenfaces
-    for i in range(len(eigen_faces)):
-        min_value = eigen_faces[i].min(axis=(0, 1))
-        max_value = eigen_faces[i].max(axis=(0, 1))
-        eigen_faces[i] = 255 * (eigen_faces[i] - min_value) / (max_value - min_value)
-
-    fig, axes = plt.subplots(4, 5, sharex=True, sharey=True, figsize=(8, 10))
-    for i in range(len(eigen_faces)):
-        print(eigen_faces[i])
-        axes[i % 4][i // 4].imshow(eigen_faces[i].reshape(size), cmap="gray")
-    plt.show()
+    cv2.imwrite('iivp/resultPictures/exercise4/newface.jpg', output_img.reshape(size))
 
 
 # read in all images in directory
-images = read_images_from_folder("iivp/pictures/pca")
-do_pca(images)
+images_all = read_images_from_folder("iivp/pictures/pca")
+mx, vi = do_pca(images_all)
+
+weights_yi = vi * (np.mean(images_all) - mx)
+createNewFace(mx, vi[1:2], weights_yi[1:2], images_all[0].shape)
