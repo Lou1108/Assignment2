@@ -20,9 +20,8 @@ def do_pca(images):
     # already takes care of step 4: Covariance matrix and gives back the eigenvectors (step 5)
     # eigenvectors has shape (n_img, w*h*3)
     mx_mean, A_eigenVectors = cv2.PCACompute(data, mean=None)
-
+    
     avg_faces = mx_mean.reshape(size)
-    print("mean: ", avg_faces.shape)
 
     eigen_faces = [];
     count = 1  # counter to save all images
@@ -47,7 +46,7 @@ def read_images_from_folder(folder_name):
         img = cv2.imread(os.path.join(folder_name, image))
         if img is not None:
             if type(img) == np.ndarray:  # only read if it is an image, prevents errors
-                img = cv2.resize(img, (717, 717))  # let all images have the same size
+                img = cv2.resize(img, (720, 720))  # let all images have the same size
                 images.append(img)  # add to data array
     return images
 
@@ -100,5 +99,5 @@ data = create_data_matrix(images_all)
 
 mx, A = do_pca(images_all)
 
-weights_yi = np.dot(A, (data[0] - np.transpose(mx)))
-createNewFace(mx, A[0:2], weights_yi[0:2], images_all[0].shape)
+#weights_yi = np.dot(A, (data[0] - np.transpose(mx)))
+#createNewFace(mx, A[0:2], weights_yi[0:2], images_all[0].shape)
