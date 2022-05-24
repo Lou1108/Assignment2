@@ -5,10 +5,10 @@ import cv2
 import numpy as np
 
 # variables
-alpha = 0.05
+alpha = -0.05
 beta = 0.12
-mean = 0.2 #0.1  #0.05
-std = 1 #0.02**0.5 #1
+mean = 0.2
+std = 1
 
 
 def add_motion_blur(image_bgr, a, b):
@@ -70,6 +70,7 @@ def add_gaussian_noise(img, mu, sigma):
 def add_gaussian_single_channel(channel, mu, sigma):
     f_img = np.fft.fft2(channel)  # transfer channel into ff domain
     noise = np.random.normal(mu, sigma, channel.shape).astype(np.uint8)  # Gaussian Noise
+    noise = noise.reshape(channel.shape)
     f_noise = np.fft.fft2(noise)  # transfer noise into ff domain
     noisy_img = np.add(f_img, f_noise)  # adding noise to the colour component
 
@@ -121,7 +122,6 @@ def mmse_filter(img, blur_img, a, b, filter_motion_noise):
     return cv2.merge((b_img_filtered, g_img_filtered, r_img_filtered))
 
 
-### clean up
 def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
     channel = channel.astype(np.double)
 
@@ -143,11 +143,6 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
 
     # approximate ratio between power spectrum of noise and original image by a constant
     k = sum(ps_noise) / sum(ps_img)
-    #k = ps_noise / ps_img
-    # print(k)
-    # approximate k by the mean of the ratio
-    # k = k.mean()
-    # print(k)
 
     # Wiener filter
     h_w = np.conj(h) / (np.abs(h) ** 2 + k)
@@ -162,7 +157,6 @@ def mmse_single_channel(channel, blur_channel, a, b, filter_motion_noise):
 
 
 bgr_img = cv2.imread("iivp/pictures/bird.jpg")  # read image
-
 
 ##################### exercise 1.1 ########################
 # adding diagonal motion blurring degradation function
