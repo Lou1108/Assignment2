@@ -22,6 +22,7 @@ def do_pca(images):
     mx_mean, A_eigenVectors = cv2.PCACompute(data, mean=None)
 
     avg_faces = mx_mean.reshape(size)
+    print("mean: ", avg_faces.shape)
 
     eigen_faces = [];
     count = 1  # counter to save all images
@@ -75,23 +76,29 @@ that measures how much each is going to be used in the reconstruction '''
 def createNewFace(avg_face, eigen_faces, y_weight, size):
     # Start with the mean image
     output_img = avg_face
-    num_eigen_faces = len(eigen_faces)
+    # len_eig_vector = eigen_faces.shape[1]
+    len_eig_vector = len(eigen_faces)
+    print("num: ", y_weight.shape)
 
     # Add the eigen faces with the weights
-    for i in range(num_eigen_faces):
+    for i in range(len_eig_vector):
         print("eigen_faces: ", eigen_faces[i].shape)
         print("weights: ", y_weight[i].shape)
-        output_img = np.add(output_img, eigen_faces[i] * y_weight[i])
+        output_img = np.add(output_img, (eigen_faces[i] * y_weight[i]))
 
-    print(output_img)
+        print(output_img)
+
     print(output_img.shape)
+    print(output_img-mx)
     # Display Result at 2x size
     cv2.imwrite('iivp/resultPictures/exercise4/newface.jpg', output_img.reshape(size))
 
 
 # read in all images in directory
 images_all = read_images_from_folder("iivp/pictures/pca")
-mx, vi = do_pca(images_all)
+data = create_data_matrix(images_all)
 
-weights_yi = vi * (np.mean(images_all) - mx)
-createNewFace(mx, vi[1:2], weights_yi[1:2], images_all[0].shape)
+mx, A = do_pca(images_all)
+
+weights_yi = np.dot(A, (data[0] - np.transpose(mx)))
+createNewFace(mx, A[0:2], weights_yi[0:2], images_all[0].shape)

@@ -5,9 +5,9 @@ import cv2
 import numpy as np
 
 # variables
-alpha = -0.05
-beta = 0.08
-mean = 0.005 #0.1  #0.05
+alpha = 0.05
+beta = 0.12
+mean = 0.2 #0.1  #0.05
 std = 1 #0.02**0.5 #1
 
 
@@ -70,14 +70,13 @@ def add_gaussian_noise(img, mu, sigma):
 def add_gaussian_single_channel(channel, mu, sigma):
     f_img = np.fft.fft2(channel)  # transfer channel into ff domain
     noise = np.random.normal(mu, sigma, channel.shape).astype(np.uint8)  # Gaussian Noise
-    noise = noise.reshape(channel.shape)
     f_noise = np.fft.fft2(noise)  # transfer noise into ff domain
     noisy_img = np.add(f_img, f_noise)  # adding noise to the colour component
 
     noisy_img = np.fft.ifft2(noisy_img)  # transfer channel back into time domain
 
     # normalize the picture before returning it
-    return cv2.normalize(np.abs(noisy_img), None, 0, 255, cv2.NORM_MINMAX) # np.abs(noisy_img)
+    return cv2.normalize(np.abs(noisy_img), None, 0, 255, cv2.NORM_MINMAX)
 
 
 def direct_inv_filter(blurry_img, a, b):
