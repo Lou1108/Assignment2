@@ -2,8 +2,6 @@ import os
 
 import cv2
 import numpy as np
-from PIL import Image
-from matplotlib import pyplot as plt
 
 def read_images_from_folder(folder_name):
     # reference: https://stackoverflow.com/questions/30230592/loading-all-images-using-imread-from-a-given-folder
@@ -36,8 +34,8 @@ def create_data_matrix(data):
 def print_eigen():
     all_img = read_images_from_folder("iivp/pictures/pca")#[0:7]
 
-    #data = create_data_matrix(all_img)
-    #mean_face, faces_matrix = cv2.PCACompute(data, mean=None)
+    data = create_data_matrix(all_img)
+    mean_face, faces_matrix = cv2.PCACompute(data, mean=None)
 
     neutral = []
     print('Enter path to 7 images below to produce mean face & eigen faces :\n')
@@ -48,8 +46,8 @@ def print_eigen():
         img2 = np.array(img).flatten()
         neutral.append(img2)
 
-    faces_matrix = np.vstack(neutral)
-    mean_face = np.mean(faces_matrix, axis=0)
+    #faces_matrix = np.vstack(neutral)
+    #mean_face = np.mean(faces_matrix, axis=0)
 
     print(faces_matrix.shape)
 
@@ -60,13 +58,17 @@ def print_eigen():
     print('Printed Mean Face. Check the output window for final results.\n ')
     #plt.title('Mean Face')
     #plt.show()
+    print("eigenface size: ", faces_matrix.shape)
 
     # print 5 eigen faces
     # normalization of faces matrix
-    faces_norm = faces_matrix - mean_face
-    faces_norm = faces_norm.T
-    face_cov = np.cov(faces_norm)
-    eigen_vecs, eigen_vals, _ = np.linalg.svd(faces_norm)
+    A = faces_matrix #- mean_face
+    A = A.T
+    print("norm size: ", A.shape)
+    face_cov = np.cov(A)
+    eigen_vecs, eigen_vals, _ = np.linalg.svd(A)
+    print("vals: ", eigen_vals.shape)
+    print("vec: ", eigen_vecs.shape)
     # 5 Eigen Faces Visualization
     average_face = mean_face.reshape(50, 50, 3)
     eigen_face = []

@@ -4,6 +4,7 @@
 
 # https://learnopencv.com/eigenface-using-opencv-c-python/
 # https://machinelearningmastery.com/face-recognition-using-principal-component-analysis/
+# https://iq.opengenus.org/project-on-reconstructing-face/
 import os
 import cv2
 import numpy as np
@@ -19,22 +20,27 @@ def do_pca(images):
     # using the data matrix, compute the mean and the eigenvectors for each image
     # already takes care of step 4: Covariance matrix and gives back the eigenvectors (step 5)
     # eigenvectors has shape (n_img, w*h*3)
-    mx_mean, A_eigenVectors = cv2.PCACompute(data, mean=None)
-    
-    avg_faces = mx_mean.reshape(size)
+    mx_mean, eig_vec_faces = cv2.PCACompute(data, mean=None)
+    print("eigenface size: ", eig_vec_faces.shape)
+
+    avg_face = mx_mean.reshape(size)
+    A = eig_vec_faces.T
+    eigen_vecs, eigen_vals, _ = np.linalg.svd(A)
 
     eigen_faces = [];
     count = 1  # counter to save all images
-    for eigenVector in A_eigenVectors:
+    for eigenVector in eigen_vecs: #eig_vec_faces:
         eigenFace = eigenVector.reshape(size)  # reshaping to original format to retrieve eigen face
         eigen_faces.append(eigenFace)
-        disp_img = cv2.normalize(np.abs(eigenFace), None, 0, 255, cv2.NORM_MINMAX)
-        cv2.imwrite("iivp/resultPictures/exercise4/" + str(count) + ".jpg", disp_img)
-        count += 1
 
-    cv2.imwrite('iivp/resultPictures/exercise4/average face.jpg', avg_faces)
+        if count <10:
+            disp_img = cv2.normalize(np.abs(eigenFace), None, 0, 255, cv2.NORM_MINMAX)
+            cv2.imwrite("iivp/resultPictures/exercise4/" + str(count) + ".jpg", disp_img)
+            count += 1
 
-    return mx_mean, A_eigenVectors
+    cv2.imwrite('iivp/resultPictures/exercise4/average face.jpg', avg_face)
+
+    return mx_mean, avg_face, eigen_vecs, eigen_vals, eigen_faces
 
 
 #################################### also include mirrored images!!!  #################################################
@@ -46,7 +52,7 @@ def read_images_from_folder(folder_name):
         img = cv2.imread(os.path.join(folder_name, image))
         if img is not None:
             if type(img) == np.ndarray:  # only read if it is an image, prevents errors
-                img = cv2.resize(img, (720, 720))  # let all images have the same size
+                img = cv2.resize(img, (50,50))#(500, 500))  # let all images have the same size
                 images.append(img)  # add to data array
     return images
 
@@ -72,7 +78,7 @@ weights is a list of weights corresponding to the list of faces,
 that measures how much each is going to be used in the reconstruction '''
 
 
-def createNewFace(avg_face, eigen_faces, y_weight, size):
+def reconstruct_face(avg_face, eigen_faces, y_weight, size):
     # Start with the mean image
     output_img = avg_face
     # len_eig_vector = eigen_faces.shape[1]
@@ -93,11 +99,47 @@ def createNewFace(avg_face, eigen_faces, y_weight, size):
     cv2.imwrite('iivp/resultPictures/exercise4/newface.jpg', output_img.reshape(size))
 
 
+def reconstruction(mean_face, eigen_vecs, eigen_faces, imVector):
+    final_output = mean_face
+    print("mean: ", mean_face.shape)
+    print("eigen: ", len(eigen_faces))
+    # We make percentage dict to store the weight of eigen face used
+    # to reconstruct the current output
+    percentage = {}
+    for k in range(0, len(eigen_vecs)):
+        weight = np.dot(imVector, eigen_vecs[k])
+        final_output = final_output + eigen_faces[k] * weight
+        # store weight in percentage dict
+
+        percentage[k] = abs(weight)
+    # display output
+
+    disp_img = cv2.normalize(np.abs(final_output), None, 0, 255, cv2.NORM_MINMAX)
+    cv2.imwrite("iivp/resultPictures/exercise4/final.jpg", disp_img)
+
+    # Display the Percentage of Eigen Faces used for reconstruction dynamically
+    total = 0
+    if (len(percentage) > 0):
+        print("\nPercentage of Eigen Faces that make current output :")
+    for i in percentage:
+        total = total + abs(percentage[i])
+    for i in percentage:
+        val = float(abs((percentage[i] / total) * 100))
+        if (val > 0):
+            print(str("{:.2f}".format(val)) + "% of Face " + str(i + 1))
+
+
 # read in all images in directory
 images_all = read_images_from_folder("iivp/pictures/pca")
-data = create_data_matrix(images_all)
+data_set = create_data_matrix(images_all)
 
-mx, A = do_pca(images_all)
+mx, avgFace, eigenVectors, eigenVals, eigenFaces = do_pca(images_all)
 
+
+imVector = data_set[1] - mx
+disp_img = cv2.normalize(np.abs(np.array(imVector).reshape(50,50,3)), None, 0, 255, cv2.NORM_MINMAX)
+cv2.imwrite("iivp/resultPictures/exercise4/test.jpg", disp_img)
+
+reconstruction(avgFace, eigenVectors, eigenFaces, imVector)
 #weights_yi = np.dot(A, (data[0] - np.transpose(mx)))
 #createNewFace(mx, A[0:2], weights_yi[0:2], images_all[0].shape)
