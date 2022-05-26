@@ -91,7 +91,6 @@ def rec_face(avg_face, mean, eig_vec, eig_faces, data, num_rec_vec):
 # face reconstruction
 # reference: https://github.com/spmallick/learnopencv/blob/e355204b7e9657ce719208ab28879dd265a36a2e/ReconstructFaceUsingEigenFaces/reconstructFace.py
 def rec_one_face(avg_face, mean, eig_vec, eig_faces, image, num_rec_vec, name):
-
     final_output = avg_face  # reconstruct face: Xr = Ii*y + mx
     for j in range(0, num_rec_vec):
         # calculate weights for the image: y = vi.(Ii - mx)
@@ -108,5 +107,19 @@ images_all = read_images_from_folder("iivp/pictures/pca")
 data_set = create_data_matrix(images_all)  # read pictures in from folder
 mx, avgFace, eigenVectors, eigenFaces = do_pca(images_all)
 
-rec_face(avgFace, mx, eigenVectors, eigenFaces, data_set, 18)  # reconstruct all faces
-rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[0], 18, "man")  # reconstruct only one
+################################################# exercise 2 #################################################
+# reconstruct the 3 original faces using all eigen faces
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[11], 18, "man_all")  # reconstruct the man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[9], 18, "old_all")  # reconstruct the old man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[14], 18, "woman_all")  # reconstruct the woman
+
+# reconstruct the 3 original faces using all only 3 eigen faces
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[11], 3, "man_3")  # reconstruct the man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[9], 3, "old_3")  # reconstruct the old man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[14], 3, "woman_3")  # reconstruct the woman
+
+# reconstruct the 3 original faces using all only 3 eigen faces
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[11], 1, "man_1")  # reconstruct the man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[9], 1, "old_1")  # reconstruct the old man
+rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[14], 1, "woman_1")  # reconstruct the woman
+
