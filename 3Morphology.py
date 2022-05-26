@@ -53,6 +53,8 @@ def granulometry(img, max_size):
     for i in range(max_size):
         sucOpen = perform_opening(img, i)
         surfAreas[i] = np.sum(sucOpen)  # calculate surface area of the opened image
+        if (i%10 == 0):
+            cv2.imwrite('iivp/resultPictures/exercise3/' + str(i) +'.jpg', sucOpen)
     return surfAreas
 
 

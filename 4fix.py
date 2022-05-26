@@ -22,6 +22,7 @@ def do_pca(images):
     # eigenvectors has shape (n_img, w*h*3)
     mx_mean, eig_vec_faces = cv2.PCACompute(data, mean=None)
     print("eigenface size: ", eig_vec_faces.shape)
+    print("mean size: ", mx_mean.shape)
 
     avg_face = mx_mean.reshape(size)
     A = eig_vec_faces.T
@@ -66,10 +67,13 @@ def create_data_matrix(data):
     data_matrix = np.zeros((num_img, size[0] * size[1] * size[2]),
                            dtype=np.float32)  # uint8
 
+    print(data_matrix.shape)
+
     for i in range(0, num_img):
         image = data[i].flatten()  # step 1: vectorize each image (will have dimension (3*w*h, 1)
-        data_matrix[i, :] = image  # step 2: add vector to the data matrix
-
+        #print(image.shape)
+        data_matrix[i,:] = image  # step 2: add vector to the data matrix
+        print(data_matrix[i,:].shape)
     return data_matrix
 
 
@@ -136,10 +140,10 @@ data_set = create_data_matrix(images_all)
 mx, avgFace, eigenVectors, eigenVals, eigenFaces = do_pca(images_all)
 
 
-imVector = data_set[0] - mx
-disp_img = cv2.normalize(np.abs(np.array(data_set[0]).reshape(50,50,3)), None, 0, 255, cv2.NORM_MINMAX)
+imVector = data_set[1] - mx
+disp_img = cv2.normalize(np.abs(np.array(imVector).reshape(50,50,3)), None, 0, 255, cv2.NORM_MINMAX)
 cv2.imwrite("iivp/resultPictures/exercise4/test.jpg", disp_img)
 
-reconstruction(avgFace, eigenVectors, eigenFaces[0:5], imVector)
+reconstruction(avgFace, eigenVectors, eigenFaces, imVector)
 #weights_yi = np.dot(A, (data[0] - np.transpose(mx)))
 #createNewFace(mx, A[0:2], weights_yi[0:2], images_all[0].shape)
