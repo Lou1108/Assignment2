@@ -5,6 +5,8 @@
 # https://learnopencv.com/eigenface-using-opencv-c-python/
 # https://machinelearningmastery.com/face-recognition-using-principal-component-analysis/
 # https://iq.opengenus.org/project-on-reconstructing-face/
+
+from random import random
 import os
 import cv2
 import numpy as np
@@ -71,25 +73,6 @@ def create_data_matrix(data):
 
 # face reconstruction
 # reference: https://github.com/spmallick/learnopencv/blob/e355204b7e9657ce719208ab28879dd265a36a2e/ReconstructFaceUsingEigenFaces/reconstructFace.py
-def rec_face(avg_face, mean, eig_vec, eig_faces, data, num_rec_vec):
-    num_images = data.shape[0]  # number of faces
-    reconstructedFaces = list()
-
-    for i in range(0, num_images):
-        final_output = avg_face
-        for j in range(0, num_rec_vec):
-            # calculate weights for the image: y = vi.(Ii - mx)
-            weight = np.dot((data[i, :] - mean), eig_vec[j])
-            # reconstruct face: Xr = Ii*y + mx
-            final_output = final_output + eig_faces[j] * weight
-        reconstructedFaces.append(final_output)  # save reconstructed face to list
-        # saving images
-        display_img = cv2.normalize(np.abs(final_output), None, 0, 255, cv2.NORM_MINMAX)
-        cv2.imwrite("iivp/resultPictures/exercise4/reconstructed/reconstructed_" + str(i+1) + ".jpg", display_img)
-
-
-# face reconstruction
-# reference: https://github.com/spmallick/learnopencv/blob/e355204b7e9657ce719208ab28879dd265a36a2e/ReconstructFaceUsingEigenFaces/reconstructFace.py
 def rec_one_face(avg_face, mean, eig_vec, eig_faces, image, num_rec_vec, name):
     final_output = avg_face  # reconstruct face: Xr = Ii*y + mx
     for j in range(0, num_rec_vec):
@@ -97,6 +80,40 @@ def rec_one_face(avg_face, mean, eig_vec, eig_faces, image, num_rec_vec, name):
         weight = np.dot((image - mean), eig_vec[j])
         # reconstruct face: Xr = Ii*y + output
         final_output = final_output + eig_faces[j] * weight
+    # saving images
+    display_img = cv2.normalize(np.abs(final_output), None, 0, 255, cv2.NORM_MINMAX)
+    cv2.imwrite("iivp/resultPictures/exercise4/reconstructed/reconstructed_" + name + ".jpg", display_img)
+
+
+# face reconstruction using different weights, all pictures
+def rec_different_weights(avg_face, mean, eig_vec, eig_faces, image_index, data, num_rec_vec, name):
+    final_output = avg_face
+    for i in range(0, num_rec_vec):
+        # calculate weights for the image: y = vi.(Ii - mx)
+        if random() > 0.5:
+            weight = np.dot((data[i, :] - mean), eig_vec[i])
+        else:  # using image that is to be reconstructed
+            weight = np.dot((data[image_index, :] - mean), eig_vec[i])
+
+        # reconstruct face: Xr = Ii*y + mx
+        final_output = final_output + eig_faces[i] * weight
+    # saving images
+    display_img = cv2.normalize(np.abs(final_output), None, 0, 255, cv2.NORM_MINMAX)
+    cv2.imwrite("iivp/resultPictures/exercise4/reconstructed/reconstructed_" + name + ".jpg", display_img)
+
+
+# face reconstruction using different weights, of one other image
+def rec_different_weights_one_pic(avg_face, mean, eig_vec, eig_faces, image, image2, num_rec_vec, name, modulo):
+    final_output = avg_face
+    for i in range(0, num_rec_vec):
+        # calculate weights for the image: y = vi.(Ii - mx)
+        if i % modulo == 1:
+            weight = np.dot((image - mean), eig_vec[i])
+        else:  # using image that is to be reconstructed
+            weight = np.dot((image2 - mean), eig_vec[i])
+
+        # reconstruct face: Xr = Ii*y + mx
+        final_output = final_output + eig_faces[i] * weight
     # saving images
     display_img = cv2.normalize(np.abs(final_output), None, 0, 255, cv2.NORM_MINMAX)
     cv2.imwrite("iivp/resultPictures/exercise4/reconstructed/reconstructed_" + name + ".jpg", display_img)
@@ -123,3 +140,10 @@ rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[11], 1, "man_1")  #
 rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[9], 1, "old_1")  # reconstruct the old man
 rec_one_face(avgFace, mx, eigenVectors, eigenFaces, data_set[14], 1, "woman_1")  # reconstruct the woman
 
+################################################# exercise 3 #################################################
+# reconstructing using a set of all images
+rec_different_weights(avgFace, mx, eigenVectors, eigenFaces, 11, data_set, 18, "approach1")
+# reconstructing using only one other image
+rec_different_weights_one_pic(avgFace, mx, eigenVectors, eigenFaces, data_set[14], data_set[15], 18, "approach2.1", 2)
+rec_different_weights_one_pic(avgFace, mx, eigenVectors, eigenFaces, data_set[15], data_set[14], 18, "approach2.2", 2)
+rec_different_weights_one_pic(avgFace, mx, eigenVectors, eigenFaces, data_set[1], data_set[2], 18, "approach2.3", 3)
