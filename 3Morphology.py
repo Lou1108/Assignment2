@@ -53,6 +53,8 @@ def granulometry(img, max_size):
     for i in range(max_size):
         sucOpen = perform_opening(img, i)
         surfAreas[i] = np.sum(sucOpen)  # calculate surface area of the opened image
+        if (i%10 == 0):
+            cv2.imwrite('iivp/resultPictures/exercise3/' + str(i) +'.jpg', sucOpen)
     return surfAreas
 
 
@@ -107,7 +109,7 @@ print('The orange tree picture contains ', count_tree, ' oranges.')
 ###################################################### exercise 3.2 ###################################################
 # read in picture in greyscale
 grey_img = cv2.imread("iivp/pictures/jar.jpg", 0)
-grey_img = cv2.resize(grey_img, (math.floor(grey_img.shape[1]/4), math.floor(grey_img.shape[0]/4)))  # resize image
+grey_img = cv2.resize(grey_img, (math.floor(grey_img.shape[1]/2), math.floor(grey_img.shape[0]/2)))  # resize image
 
 # perform granulometry and plot the results
 plot_granulometry(granulometry(grey_img, 100), 'jar_granulometry')

@@ -62,7 +62,7 @@ def blockwise_idct(img, block_size):
 
 # performing 2d dct on an image block
 def dct_2d(block):
-    # calculates the 2d dct and performs orthogonalization
+    # calculates the 2d dct
     return scipy.fftpack.dct(scipy.fftpack.dct(block.T, norm='ortho').T, norm='ortho')
 
 
